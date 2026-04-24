@@ -1,0 +1,10 @@
+la-tasa-de-oro/
+│
+├── main.py
+├── requirements.txt
+├── data.json
+├── assets/
+│
+├── .github/
+│   └── workflows/
+│       └── build-apk.yml
