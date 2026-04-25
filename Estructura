@@ -1,7 +1,10 @@
-.
+La-Tasa-de-Oro/
 ├── main.py
+├── flet.toml
 ├── requirements.txt
-├── flutter_native_splash.yaml
-└── assets/
-    ├── splash.png
-    └── icon.png
+├── assets/
+│   ├── splash.png
+│   └── icon.png
+└── .github/
+    └── workflows/
+        └── build.yml
