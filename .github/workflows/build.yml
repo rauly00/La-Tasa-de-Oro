@@ -1,4 +1,4 @@
-name: Build APK - La Tasa de Oro (STABLE PRO)
+name: Build APK - La Tasa de Oro (ULTRA LIGHT)
 
 on:
   push:
@@ -28,31 +28,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
-      # 🔥 FIX REAL: Flutter manual + sin prompts
-      - name: Install Flutter (silent mode)
-        run: |
-          git clone https://github.com/flutter/flutter.git -b stable --depth 1
-          echo "$PWD/flutter/bin" >> $GITHUB_PATH
-          export PATH="$PWD/flutter/bin:$PATH"
-          flutter config --no-analytics
-          yes | flutter doctor --android-licenses || true
-          flutter doctor -v
-
+      # 🔥 LIMPIEZA TOTAL
       - name: Clean workspace
         run: |
           rm -rf build
           rm -rf .flet
           rm -rf .dart_tool
+          rm -rf flutter
+          rm -rf .pub-cache
 
-      - name: Build APK
+      # 🚀 BUILD ULTRA OPTIMIZADO
+      - name: Build APK (ultra light)
         run: |
-          flet build apk --verbose
+          flet build apk --verbose --clear-cache --cleanup-app
 
-      - name: Find APK
-        run: find . -type f -name "*.apk"
-
-      - name: Upload APK
+      # 📦 SOLO APK REAL
+      - name: Upload APK (strict)
         uses: actions/upload-artifact@v4
         with:
-          name: la-tasa-de-oro-apk
-          path: "**/*.apk"
+          name: la-tasa-de-oro-ultra-apk
+          path: "**/app-release.apk"
