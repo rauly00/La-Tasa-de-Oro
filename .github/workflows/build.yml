@@ -14,6 +14,7 @@ jobs:
       FLET_CLI_NO_ASK: "true"
       PUB_NON_INTERACTIVE: "1"
       FLUTTER_SUPPRESS_ANALYTICS: "true"
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
       - name: Checkout repo
@@ -24,7 +25,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Flutter SDK (REQUIRED)
+      # Flutter compatible con Flet moderno
+      - name: Install Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.41.4"
@@ -38,16 +40,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
+      - name: Precache Flutter
+        run: flutter precache --android
+
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses
+
       - name: Build APK
         run: |
           flet build apk --verbose
 
-       - name: Find generated APK
-  run: find . -name "*.apk"   
+      # 🔍 DEBUG: ver si realmente se generó APK
+      - name: Find APK files
+        run: find . -type f -name "*.apk"
 
+      # 📦 Upload flexible (sin rutas fijas)
       - name: Upload APK artifact
-  uses: actions/upload-artifact@v4
-  with:
-    name: la-tasa-de-oro-apk
-    path: |
-      **/*.apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-tasa-de-oro-apk
+          path: "**/*.apk"
