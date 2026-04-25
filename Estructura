@@ -1,10 +1,7 @@
-la-tasa-de-oro/
-│
+.
 ├── main.py
 ├── requirements.txt
-├── data.json
-├── assets/
-│
-├── .github/
-│   └── workflows/
-│       └── build-apk.yml
+├── flutter_native_splash.yaml
+└── assets/
+    ├── splash.png
+    └── icon.png
