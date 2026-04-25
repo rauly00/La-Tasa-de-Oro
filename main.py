@@ -1,157 +1,84 @@
 import flet as ft
+import asyncio
 import requests
-import json
-import os
 
-# =========================
-# CONFIGURACIÓN
-# =========================
-API_KEY = "70878b7773256d47756289ea2506465d970d8b009437b224fb1f9e15b3dd4865"
-BASE_URL = "https://www.goldapi.io/api"
+API_URL = "https://api.gold-api.com/price/XAU"  # cámbiala por tu API real
 
-usd_to_cup = 525  # mercado informal Cuba
-DATA_FILE = "data.json"
+async def main(page: ft.Page):
+    page.title = "La Tasa de Oro"
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.bgcolor = "#0b0b0b"  # negro elegante
+    page.padding = 0
 
-# =========================
-# CARGAR HISTORIAL
-# =========================
-
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    return {"gold": [], "silver": []}
-
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
-
-history = load_data()
-
-# =========================
-# 🔌 API REAL (ORO / PLATA)
-# =========================
-
-def get_gold_price():
-    url = f"{BASE_URL}/XAU/USD"
-    headers = {
-        "x-access-token": API_KEY
-    }
-    response = requests.get(url, headers=headers)
-    data = response.json()
-    return float(data["price"])
-
-
-def get_silver_price():
-    url = f"{BASE_URL}/XAG/USD"
-    headers = {
-        "x-access-token": API_KEY
-    }
-    response = requests.get(url, headers=headers)
-    data = response.json()
-    return float(data["price"])
-
-# =========================
-# IA SIMPLE
-# =========================
-
-def trend(values):
-    if len(values) < 5:
-        return "📊 recopilando datos"
-
-    short = sum(values[-3:]) / 3
-    long = sum(values[-7:]) / 7 if len(values) >= 7 else sum(values) / len(values)
-
-    if short > long:
-        return "📈 subida"
-    elif short < long:
-        return "📉 bajada"
-    return "⚖️ estable"
-
-# =========================
-# APP
-# =========================
-
-def main(page: ft.Page):
-    page.title = "💰 La Tasa de Oro"
-    page.scroll = "auto"
-
-    gold_text = ft.Text(size=18, weight="bold")
-    silver_text = ft.Text(size=18, weight="bold")
-    alert_text = ft.Text(size=16)
-
-    gold_chart = ft.LineChart(
-        data_series=[],
-        border=ft.border.all(1),
-        min_y=2000,
-        max_y=2500,
-        expand=True
+    # -------- Splash overlay (se ve después del splash nativo) --------
+    splash_overlay = ft.Container(
+        bgcolor="#000000",
+        content=ft.Column(
+            [
+                ft.Image(src="assets/icon.png", width=180, height=180),
+                ft.ProgressRing(color="#d4af37"),  # dorado
+                ft.Text("Cargando...", color="#d4af37", size=16),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=20,
+        ),
+        expand=True,
+        opacity=1,
+        animate_opacity=ft.Animation(600, "easeOut"),
     )
 
-    # =========================
-    # ACTUALIZAR GRÁFICA
-    # =========================
-    def update_chart():
-        points = []
+    # -------- UI principal (inicialmente oculta) --------
+    price_txt = ft.Text("—", size=32, weight="bold", color="#d4af37")
+    status_txt = ft.Text("", color="#aaaaaa")
 
-        for i, v in enumerate(history["gold"][-20:]):
-            points.append(ft.LineChartDataPoint(i, v))
-
-        gold_chart.data_series = [
-            ft.LineChartData(
-                data_points=points,
-                stroke_width=3
-            )
-        ]
-
-    # =========================
-    # ACTUALIZAR DATOS
-    # =========================
-    def update(e=None):
-        global usd_to_cup
-
+    async def fetch_price():
         try:
-            gold = get_gold_price()
-            silver = get_silver_price()
-        except:
-            gold = 2300
-            silver = 28
+            r = requests.get(API_URL, timeout=10)
+            data = r.json()
+            # Ajusta según tu API:
+            price = data.get("price") or data
+            price_txt.value = f"${price}"
+            status_txt.value = "Actualizado"
+        except Exception as e:
+            status_txt.value = f"Error de red"
+        await page.update_async()
 
-        history["gold"].append(gold)
-        history["silver"].append(silver)
-
-        save_data(history)
-
-        gold_cup = gold * usd_to_cup
-        silver_cup = silver * usd_to_cup
-
-        gold_text.value = f"🏆 Oro: ${gold} USD | {gold_cup:,} CUP"
-        silver_text.value = f"🥈 Plata: ${silver} USD | {silver_cup:,} CUP"
-
-        alert_text.value = f"🤖 IA: {trend(history['gold'])}"
-
-        update_chart()
-        page.update()
-
-    # =========================
-    # UI
-    # =========================
-
-    title = ft.Text("💰 La Tasa de Oro PRO (API REAL)", size=22, weight="bold")
-
-    btn = ft.ElevatedButton("🔄 Actualizar mercado", on_click=update)
-
-    page.add(
-        title,
-        btn,
-        gold_text,
-        silver_text,
-        alert_text,
-        ft.Text("📊 Gráfica del Oro (tiempo real)", weight="bold"),
-        gold_chart
+    main_content = ft.Container(
+        visible=False,
+        content=ft.Column(
+            [
+                ft.Text("La Tasa de Oro", size=28, weight="bold", color="#ffffff"),
+                ft.Container(height=10),
+                price_txt,
+                status_txt,
+                ft.Container(height=20),
+                ft.ElevatedButton(
+                    "Actualizar",
+                    on_click=lambda e: asyncio.create_task(fetch_price()),
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        expand=True,
     )
 
-    update()
+    # -------- Montaje --------
+    page.add(main_content, splash_overlay)
+    await page.update_async()
+
+    # Carga inicial (mientras el overlay está visible)
+    await fetch_price()
+
+    # Mostrar UI y ocultar overlay suavemente
+    main_content.visible = True
+    splash_overlay.opacity = 0
+    await page.update_async()
+
+    # Espera a que termine la animación y remueve overlay
+    await asyncio.sleep(0.6)
+    page.controls.remove(splash_overlay)
+    await page.update_async()
 
 ft.app(target=main)
