@@ -13,7 +13,7 @@ jobs:
       CI: "true"
       FLET_CLI_NO_ASK: "true"
       PUB_NON_INTERACTIVE: "1"
-      GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+      FLUTTER_SUPPRESS_ANALYTICS: "true"
 
     steps:
       - name: Checkout repo
@@ -24,32 +24,25 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Flutter estable compatible con Flet moderno
-      - name: Install Flutter SDK
+      - name: Install Flutter SDK (REQUIRED)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.22.0"
+          flutter-version: "3.41.4"
           channel: stable
 
       - name: Verify Flutter
         run: flutter doctor -v
 
-      - name: Install dependencies
+      - name: Install Flet
         run: |
           python -m pip install --upgrade pip
           pip install flet==0.84.0
-
-      - name: Pre-cache Flutter dependencies
-        run: flutter precache --android
-
-      - name: Accept Android licenses
-        run: yes | flutter doctor --android-licenses
 
       - name: Build APK
         run: |
           flet build apk --verbose
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: la-tasa-de-oro-apk
