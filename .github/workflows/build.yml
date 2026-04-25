@@ -1,8 +1,8 @@
-name: Build Android APK
+name: Build Android APK (Flet Pro)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -23,16 +23,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet
 
-      - name: Install Flet build tools
-        run: |
-          pip install flet-build-tools
+      - name: Cache Flutter (mejora velocidad)
+        uses: actions/cache@v4
+        with:
+          path: ~/.flutter
+          key: flutter-cache
 
       - name: Build APK
         run: |
-          flet build apk
+          flet build apk --verbose
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: la-tasa-de-oro-apk
-          path: build/apk/
+          path: build/app/outputs/flutter-apk/          
