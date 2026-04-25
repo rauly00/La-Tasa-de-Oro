@@ -1,0 +1,7 @@
+app_name = "La Tasa de Oro"
+app_id = "com.latasaoro.app"
+version = "1.0.0"
+
+[android]
+min_sdk = 21
+target_sdk = 34
