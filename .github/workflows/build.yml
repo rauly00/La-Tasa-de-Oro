@@ -42,8 +42,12 @@ jobs:
         run: |
           flet build apk --verbose
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: la-tasa-de-oro-apk
-          path: build/app/outputs/flutter-apk/
+       - name: Find generated APK
+  run: find . -name "*.apk"   
+
+      - name: Upload APK artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: la-tasa-de-oro-apk
+    path: |
+      **/*.apk
