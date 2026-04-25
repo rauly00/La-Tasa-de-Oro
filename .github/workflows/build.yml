@@ -28,18 +28,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
-      - name: Clean build folders
+      - name: Clean build
         run: |
           rm -rf build
           rm -rf .flet
 
-      - name: Build APK (Flet)
+      - name: Build APK
         run: |
           flet build apk --verbose
 
-      - name: Locate APK
-        run: |
-          find . -type f -name "*.apk"
+      - name: Find APK
+        run: find . -type f -name "*.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
