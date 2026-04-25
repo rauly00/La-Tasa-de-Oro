@@ -6,7 +6,7 @@ import os
 # =========================
 # CONFIGURACIÓN
 # =========================
-API_KEY = "TU_API_KEY_AQUI"
+API_KEY = "70878b7773256d47756289ea2506465d970d8b009437b224fb1f9e15b3dd4865"
 BASE_URL = "https://www.goldapi.io/api"
 
 usd_to_cup = 525  # mercado informal Cuba
