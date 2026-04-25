@@ -28,6 +28,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
+      # 🔥 FIX CLAVE: pre-instalar Flutter sin prompts
+      - name: Install Flutter silently
+        run: |
+          git clone https://github.com/flutter/flutter.git -b stable --depth 1
+          echo "$PWD/flutter/bin" >> $GITHUB_PATH
+          export PATH="$PWD/flutter/bin:$PATH"
+          flutter config --no-analytics
+          flutter doctor -v
+
       - name: Clean build
         run: |
           rm -rf build
