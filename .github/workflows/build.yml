@@ -13,7 +13,6 @@ jobs:
       CI: "true"
       FLET_CLI_NO_ASK: "true"
       PUB_NON_INTERACTIVE: "1"
-      FLET_FORCE_ANSWER: "yes"
 
     steps:
       - name: Checkout repo
@@ -29,23 +28,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
-      - name: Install Flutter (manual, NO prompts)
-        run: |
-          git clone https://github.com/flutter/flutter.git -b stable --depth 1
-          echo "$PWD/flutter/bin" >> $GITHUB_PATH
-          flutter doctor
-
-      - name: Clean project
+      - name: Clean build folders
         run: |
           rm -rf build
           rm -rf .flet
 
-      - name: Build APK
+      - name: Build APK (Flet)
         run: |
           flet build apk --verbose
 
-      - name: Find APK
-        run: find . -type f -name "*.apk"
+      - name: Locate APK
+        run: |
+          find . -type f -name "*.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
