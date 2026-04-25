@@ -1,4 +1,4 @@
-name: Build PRO APK - La Tasa de Oro
+name: Build APK - La Tasa de Oro
 
 on:
   push:
@@ -28,21 +28,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
-      - name: Clean previous builds
+      - name: Clean project (safe)
         run: |
-          rm -rf build dist .flet
+          rm -rf build
+          rm -rf .flet
 
-      - name: Build Android APK (PRO MODE)
+      - name: Build APK
         run: |
-          flet build apk --verbose --clean
+          flet build apk --verbose
 
-      - name: Verify APK output
+      - name: Find APK
         run: |
-          echo "Searching APK..."
           find . -type f -name "*.apk"
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: la-tasa-de-oro-pro-apk
+          name: la-tasa-de-oro-apk
           path: "**/*.apk"
