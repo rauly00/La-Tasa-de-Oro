@@ -1,4 +1,4 @@
-name: Build APK - La Tasa de Oro
+name: Build PRO APK - La Tasa de Oro
 
 on:
   push:
@@ -13,76 +13,36 @@ jobs:
       CI: "true"
       FLET_CLI_NO_ASK: "true"
       PUB_NON_INTERACTIVE: "1"
-      FLUTTER_SUPPRESS_ANALYTICS: "true"
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install Flutter 3.41.4
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.41.4"
-          channel: stable
-
-      - name: Flutter doctor
-        run: flutter doctor -v
-
-      - name: Install deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install flet==0.84.0
-
-      - name: Precache & licenses
-        run: |
-          flutter precache --android
-          yes | flutter doctor --android-licenses
-
-      # 🔥 Fuerza regeneración del splash (CLAVE)
-      - name: Force splash generation
-        run: |
-          dart run flutter_native_splash:create
-
-      # 🔥 Build limpio
-      - name: Build APK
-        run: |
-          flet build apk --verbose --clean
-
-      # 🔍 Debug
-      - name: Find APK
-        run: find . -type f -name "*.apk"
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: la-tasa-de-oro-apk
-          path: "**/*.apk"
       - name: Install Flet
         run: |
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
-      - name: Precache Flutter
-        run: flutter precache --android
-
-      - name: Accept Android licenses
-        run: yes | flutter doctor --android-licenses
-
-      - name: Build APK
+      - name: Clean previous builds
         run: |
-          flet build apk --verbose
+          rm -rf build dist .flet
 
-      # 🔍 DEBUG: ver si realmente se generó APK
-      - name: Find APK files
-        run: find . -type f -name "*.apk"
+      - name: Build Android APK (PRO MODE)
+        run: |
+          flet build apk --verbose --clean
 
-      # 📦 Upload flexible (sin rutas fijas)
+      - name: Verify APK output
+        run: |
+          echo "Searching APK..."
+          find . -type f -name "*.apk"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: la-tasa-de-oro-apk
+          name: la-tasa-de-oro-pro-apk
           path: "**/*.apk"
