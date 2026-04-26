@@ -1,2 +1,4 @@
 flet==0.84.0
-requests
+requests==2.31.0
+yfinance==0.2.31
+pandas==2.1.4
