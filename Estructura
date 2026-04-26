@@ -2,9 +2,13 @@ La-Tasa-de-Oro/
 ├── main.py
 ├── flet.toml
 ├── requirements.txt
-├── assets/
-│   ├── splash.png
-│   └── icon.png
+assets/
+├── splash.png
+├── icon.png
+├── alert.mp3
+├── click.mp3
+├── gold.png
+└── silver.png
 └── .github/
     └── workflows/
         └── build.yml
