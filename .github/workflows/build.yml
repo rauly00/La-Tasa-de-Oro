@@ -1,4 +1,4 @@
-name: Build APK - La Tasa de Oro (OPTIMIZADO Y LIGERO)
+name: Build APK - La Tasa de Oro (OPTIMIZADO)
 
 on:
   push:
@@ -32,8 +32,12 @@ jobs:
         run: |
           yes | flet build apk
 
-      - name: Upload APK (LIGERO)
+      - name: Encontrar la ruta exacta del APK
+        run: |
+          echo "APK_PATH=$(find . -type f -name "*.apk" | head -n 1)" >> $GITHUB_ENV
+
+      - name: Upload APK (EXACTO)
         uses: actions/upload-artifact@v4
         with:
           name: la-tasa-de-oro-ultra
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: ${{ env.APK_PATH }}
