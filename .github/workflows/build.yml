@@ -1,4 +1,4 @@
-name: Build APK - La Tasa de Oro (LIMPIO)
+name: Build APK - La Tasa de Oro (CAZADOR DE APKs)
 
 on:
   push:
@@ -32,18 +32,25 @@ jobs:
         run: |
           yes | flet build apk
 
-      - name: Extraer y Limpiar el APK
+      - name: Cazar y Limpiar el APK
         run: |
-          # Creamos una carpeta limpia llamada 'dist'
+          # Buscar TODOS los archivos .apk reales (ignorando basura)
+          APK_REAL=$(find . -type f -name "*.apk" ! -name "*debug*" ! -name "*profile*")
+          
+          # Mostrar en la consola qué encontró (para que lo veas tú en GitHub)
+          echo "========================================="
+          echo "APK ENCONTRADO EN: $APK_REAL"
+          echo "========================================="
+          
+          # Verificar tamaño antes de copiar
+          ls -lh "$APK_REAL"
+          
+          # Crear carpeta limpia y copiar
           mkdir dist
-          # Copiamos SOLO el archivo APK final a esa carpeta
-          cp build/app/outputs/flutter-apk/app-release.apk dist/LaTasaDeOro.apk
-          # Borramos toda la carpeta build para no dejar basura
-          rm -rf build
+          cp "$APK_REAL" dist/LaTasaDeOro.apk
 
       - name: Upload APK LIMPIO
         uses: actions/upload-artifact@v4
         with:
           name: apk-limpio-final
-          # Subimos SOLO la carpeta 'dist' que tiene el archivo limpio
           path: dist/LaTasaDeOro.apk
