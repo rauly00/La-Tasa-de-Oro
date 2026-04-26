@@ -46,7 +46,7 @@ jobs:
 
       - name: Build APK (NO prompts)
         run: |
-          flet build apk --verbose --clear-cache --cleanup-app --requirements requirements.txt
+          flet build apk
 
       - name: Find APK
         run: find . -type f -name "*.apk"
