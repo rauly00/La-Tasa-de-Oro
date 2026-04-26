@@ -1,4 +1,4 @@
-name: Build APK - La Tasa de Oro (ULTRA STABLE)
+name: Build APK - La Tasa de Oro (OPTIMIZADO Y LIGERO)
 
 on:
   push:
@@ -23,36 +23,18 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Flutter MANUAL (no prompts)
-        run: |
-          git clone https://github.com/flutter/flutter.git -b stable --depth 1
-          echo "$PWD/flutter/bin" >> $GITHUB_PATH
-          export PATH="$PWD/flutter/bin:$PATH"
-          flutter config --no-analytics
-          yes | flutter doctor --android-licenses || true
-          flutter doctor -v
-
       - name: Install Flet
         run: |
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
-      - name: Clean workspace (ULTRA)
-        run: |
-          rm -rf build
-          rm -rf .flet
-          rm -rf .dart_tool
-          rm -rf .pub-cache
-
-      - name: Build APK (NO prompts)
+      - name: Build APK
         run: |
           flet build apk
 
-      - name: Find APK
-        run: find . -type f -name "*.apk"
-
-      - name: Upload APK (STRICT)
+      - name: Upload APK (LIGERO)
         uses: actions/upload-artifact@v4
         with:
           name: la-tasa-de-oro-ultra
-          path: "**/app-release.apk"
+          # Apuntamos exactamente a la APK generada, sin basura extra
+          path: build/app/outputs/flutter-apk/app-release.apk
