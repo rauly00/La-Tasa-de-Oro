@@ -1,4 +1,4 @@
-name: Build APK - La Tasa de Oro (OPTIMIZADO)
+name: Build APK - La Tasa de Oro (LIMPIO)
 
 on:
   push:
@@ -32,12 +32,18 @@ jobs:
         run: |
           yes | flet build apk
 
-      - name: Encontrar la ruta exacta del APK
+      - name: Extraer y Limpiar el APK
         run: |
-          echo "APK_PATH=$(find . -type f -name "*.apk" | head -n 1)" >> $GITHUB_ENV
+          # Creamos una carpeta limpia llamada 'dist'
+          mkdir dist
+          # Copiamos SOLO el archivo APK final a esa carpeta
+          cp build/app/outputs/flutter-apk/app-release.apk dist/LaTasaDeOro.apk
+          # Borramos toda la carpeta build para no dejar basura
+          rm -rf build
 
-      - name: Upload APK (EXACTO)
+      - name: Upload APK LIMPIO
         uses: actions/upload-artifact@v4
         with:
-          name: la-tasa-de-oro-ultra
-          path: ${{ env.APK_PATH }}
+          name: apk-limpio-final
+          # Subimos SOLO la carpeta 'dist' que tiene el archivo limpio
+          path: dist/LaTasaDeOro.apk
