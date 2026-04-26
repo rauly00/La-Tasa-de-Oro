@@ -1,13 +1,11 @@
 import flet as ft
-import yfinance as yf
+import requests
 
 # ========================================================
 # CONFIGURACIÓN GENERAL
 # ========================================================
 TASA_USD_A_CUP = 300  # CAMBIA ESTE VALOR SEGÚN LA TASA ACTUAL
 ONZA_A_GRAMOS = 31.1035
-SYMBOL_GOLD = "GC=F"
-SYMBOL_SILVER = "SI=F"
 
 def main(page: ft.Page):
     # ================= BASE =================
@@ -23,47 +21,61 @@ def main(page: ft.Page):
         precio_gramo_cup = precio_gramo_usd * TASA_USD_A_CUP
         return precio_gramo_usd, precio_onza_cup, precio_gramo_cup
 
-    def dibujar_velas(canvas: ft.canvas.Canvas, symbol: str, color_subida: str, color_bajada: str):
-        try:
-            data = yf.Ticker(symbol).history(period="30d")
-            canvas.shapes.clear()
-            if data.empty:
-                canvas.update()
-                return
+    # NUEVA FUNCIÓN: Descarga datos de Yahoo SIN yfinance NI pandas
+    def get_yahoo_data(symbol):
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=30d"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        r = requests.get(url, headers=headers, timeout=10).json()
+        
+        result = r['chart']['result'][0]
+        closes = result['indicators']['quote'][0]['close']
+        opens = result['indicators']['quote'][0]['open']
+        highs = result['indicators']['quote'][0]['high']
+        lows = result['indicators']['quote'][0]['low']
+        
+        current_price = closes[-1] if closes[-1] else closes[-2]
+        
+        # Filtrar fines de semana (donde no hay datos y valen None)
+        historical = [(o, h, l, c) for o, h, l, c in zip(opens, highs, lows, closes) if o is not None]
+        
+        return current_price, historical
 
-            highs = data['High'].tolist()
-            lows = data['Low'].tolist()
-            opens = data['Open'].tolist()
-            closes = data['Close'].tolist()
-
-            min_val = min(lows) * 0.999
-            max_val = max(highs) * 1.001
-            rango = max_val - min_val
-
-            c_width = 320
-            c_height = 180
-            candle_w = 6
-            spacing = c_width / len(closes)
-
-            def get_y(precio):
-                return c_height - ((precio - min_val) / rango) * c_height
-
-            for i in range(len(closes)):
-                x = (i * spacing) + (spacing / 2)
-                o, h, l, c = opens[i], highs[i], lows[i], closes[i]
-                color = color_subida if c >= o else color_bajada
-
-                canvas.shapes.append(
-                    ft.canvas.Line(x1=x, y1=get_y(h), x2=x, y2=get_y(l), paint=ft.paint.Paint(stroke_width=1.5, color=color))
-                )
-                body_top = min(get_y(o), get_y(c))
-                body_height = max(abs(get_y(o) - get_y(c)), 1)
-                canvas.shapes.append(
-                    ft.canvas.Rect(x=x - (candle_w / 2), y=body_top, width=candle_w, height=body_height, paint=ft.paint.Paint(color=color))
-                )
+    def dibujar_velas(canvas: ft.canvas.Canvas, data, color_subida: str, color_bajada: str):
+        canvas.shapes.clear()
+        if not data:
             canvas.update()
-        except Exception as err:
-            print(f"Error dibujando {symbol}: {err}")
+            return
+
+        # Extraer máximos y mínimos para calcular el tamaño del gráfico
+        all_highs = [d[1] for d in data]
+        all_lows = [d[2] for d in data]
+        min_val = min(all_lows) * 0.999
+        max_val = max(all_highs) * 1.001
+        rango = max_val - min_val
+
+        c_width = 320
+        c_height = 180
+        candle_w = 6
+        spacing = c_width / len(data)
+
+        def get_y(precio):
+            return c_height - ((precio - min_val) / rango) * c_height
+
+        for i, (o, h, l, c) in enumerate(data):
+            x = (i * spacing) + (spacing / 2)
+            color = color_subida if c >= o else color_bajada
+
+            # Mecha
+            canvas.shapes.append(
+                ft.canvas.Line(x1=x, y1=get_y(h), x2=x, y2=get_y(l), paint=ft.paint.Paint(stroke_width=1.5, color=color))
+            )
+            # Cuerpo
+            body_top = min(get_y(o), get_y(c))
+            body_height = max(abs(get_y(o) - get_y(c)), 1)
+            canvas.shapes.append(
+                ft.canvas.Rect(x=x - (candle_w / 2), y=body_top, width=candle_w, height=body_height, paint=ft.paint.Paint(color=color))
+            )
+        canvas.update()
 
     # ================= UI ELEMENTS =================
     loading_indicator = ft.ProgressRing(color="#d4af37", width=20, height=20)
@@ -78,7 +90,7 @@ def main(page: ft.Page):
     plata_onza_cup = ft.Text("", size=18, color="#c0c0c0", weight="bold")
     plata_gramo_cup = ft.Text("", size=16, color="#aaaaaa")
 
-    status_txt = ft.Text("Descargando datos del mercado internacional...", color="#777777", size=14, text_align=ft.TextAlign.CENTER)
+    status_txt = ft.Text("Descargando datos del mercado...", color="#777777", size=14, text_align=ft.TextAlign.CENTER)
 
     chart_gold = ft.canvas.Canvas(expand=False, width=320, height=180)
     chart_silver = ft.canvas.Canvas(expand=False, width=320, height=180)
@@ -86,42 +98,31 @@ def main(page: ft.Page):
     # ================= FETCH =================
     def get_all_data():
         try:
-            # Forzamos un timeout para que si la red es mala, no se quede clavado por minutos
-            gold_data = yf.Ticker(SYMBOL_GOLD).history(period="1d")
-            silver_data = yf.Ticker(SYMBOL_SILVER).history(period="1d")
-
-            if gold_data.empty or silver_data.empty:
-                status_txt.value = "Mercado cerrado o sin conexión."
-                status_txt.color = "#ffaa00"
-                loading_indicator.visible = False
-                page.update()
-                return
+            # Obtener datos puros con requests
+            precio_oro, hist_oro = get_yahoo_data("GC=F")
+            precio_plata, hist_plata = get_yahoo_data("SI=F")
 
             # Actualizar Oro
-            po = gold_data['Close'].iloc[-1]
-            gu, oc, gc = calcular_precios(po)
-            oro_onza_usd.value = f"${po:,.2f} USD"
+            gu, oc, gc = calcular_precios(precio_oro)
+            oro_onza_usd.value = f"${precio_oro:,.2f} USD"
             oro_gramo_usd.value = f"${gu:,.2f} USD"
             oro_onza_cup.value = f"{oc:,.2f} CUP"
             oro_gramo_cup.value = f"{gc:,.2f} CUP"
 
             # Actualizar Plata
-            ps = silver_data['Close'].iloc[-1]
-            gus, ocs, gcs = calcular_precios(ps)
-            plata_onza_usd.value = f"${ps:,.2f} USD"
+            gus, ocs, gcs = calcular_precios(precio_plata)
+            plata_onza_usd.value = f"${precio_plata:,.2f} USD"
             plata_gramo_usd.value = f"${gus:,.2f} USD"
             plata_onza_cup.value = f"{ocs:,.2f} CUP"
             plata_gramo_cup.value = f"{gcs:,.2f} CUP"
 
             status_txt.value = f"Tasa aplicada: 1 USD = {TASA_USD_A_CUP} CUP"
             status_txt.color = "#00ff88"
-            
-            # Ocultar el circulito de carga
             loading_indicator.visible = False
 
-            # Dibujar velas
-            dibujar_velas(chart_gold, SYMBOL_GOLD, "#00ff88", "#ff4d4d")
-            dibujar_velas(chart_silver, SYMBOL_SILVER, "#00ff88", "#ff4d4d")
+            # Dibujar velas con los datos crudos
+            dibujar_velas(chart_gold, hist_oro, "#00ff88", "#ff4d4d")
+            dibujar_velas(chart_silver, hist_plata, "#00ff88", "#ff4d4d")
 
         except Exception as err:
             print(f"Error general: {err}")
@@ -159,13 +160,13 @@ def main(page: ft.Page):
             )
         )
 
-    # ================= MAIN UI (SE MUESTRA INMEDIATAMENTE) =================
+    # ================= MAIN UI =================
     main_ui = ft.Column(
         [
-            ft.Image(src="assets/icon.png", width=100), # Tu icono bien visible arriba
+            ft.Image(src="assets/icon.png", width=100), 
             ft.Text("LA TASA DE ORO Y PLATA", size=20, color="white", weight="bold", text_align=ft.TextAlign.CENTER),
             ft.Container(height=10),
-            loading_indicator, # Circulito de carga mientras espera
+            loading_indicator, 
             ft.Container(height=20),
             crear_tarjeta("🥇 ORO", "#d4af37", oro_onza_usd, oro_gramo_usd, oro_onza_cup, oro_gramo_cup, chart_gold),
             crear_tarjeta("🥈 PLATA", "#c0c0c0", plata_onza_usd, plata_gramo_usd, plata_onza_cup, plata_gramo_cup, chart_silver),
@@ -182,10 +183,7 @@ def main(page: ft.Page):
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
-    # Se añade directo, sin opacidades ni delays
     page.add(main_ui)
-
-    # Se lanza la descarga en segundo plano
     page.run_thread(get_all_data)
 
 ft.app(target=main)
