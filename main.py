@@ -1,166 +1,106 @@
 import flet as ft
+import requests
 import asyncio
-import aiohttp
-from collections import deque
-from datetime import datetime
 
 API_URL = "https://api.gold-api.com/price/XAU"
 
 
-async def main(page: ft.Page):
+def main(page: ft.Page):
 
-    # ================= CORE CONFIG =================
-    page.title = "HF Trading Terminal"
-    page.bgcolor = "#020202"
-    page.padding = 10
+    # ================= BASE =================
+    page.title = "La Tasa de Oro"
+    page.bgcolor = "#0a0a0a"
+    page.padding = 0
 
-    # ================= STATE ENGINE =================
-    prices = deque(maxlen=50)
-    last_price = None
-
-    # ================= AUDIO EVENTS =================
-    click = ft.Audio(src="assets/click.mp3")
-    alert = ft.Audio(src="assets/alert.mp3")
-    page.overlay.extend([click, alert])
-
-    # ================= HEADER =================
-    title = ft.Text(
-        "HEDGE FUND DESK - GOLD",
-        size=18,
-        color="#d4af37",
-        weight="bold",
-    )
-
-    price_txt = ft.Text("—", size=48, weight="bold", color="white")
-    change_txt = ft.Text("", size=14)
-    time_txt = ft.Text("", size=11, color="#666")
-
-    # ================= CHART (RISK VIEW) =================
-    chart = ft.LineChart(
+    # ================= SPLASH =================
+    splash = ft.Container(
         expand=True,
-        border=ft.border.all(1, "#1a1a1a"),
-        data_series=[],
-    )
-
-    # ================= MARKET ENGINE =================
-    async def get_price():
-        nonlocal last_price
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(API_URL) as r:
-                    data = await r.json()
-
-            price = float(data.get("price", 0))
-            prices.append(price)
-
-            price_txt.value = f"${price:,.2f}"
-
-            if last_price:
-                diff = price - last_price
-                pct = (diff / last_price) * 100
-
-                if diff > 0:
-                    change_txt.value = f"LONG ▲ {pct:.2f}%"
-                    change_txt.color = "#00ff88"
-                    alert.play()
-                elif diff < 0:
-                    change_txt.value = f"SHORT ▼ {pct:.2f}%"
-                    change_txt.color = "#ff4d4d"
-                    alert.play()
-                else:
-                    change_txt.value = "FLAT"
-
-            last_price = price
-            time_txt.value = datetime.now().strftime("%H:%M:%S")
-
-            update_chart()
-
-        except:
-            change_txt.value = "DATA FEED LOST"
-            change_txt.color = "#ff0000"
-
-        await page.update_async()
-
-    # ================= CHART ENGINE =================
-    def update_chart():
-        if len(prices) < 2:
-            return
-
-        chart.data_series = [
-            ft.LineChartData(
-                data_points=[
-                    ft.LineChartDataPoint(i, v)
-                    for i, v in enumerate(prices)
-                ],
-                color="#d4af37",
-                stroke_width=2,
-            )
-        ]
-
-    # ================= DASHBOARD =================
-    dashboard = ft.Column(
-        expand=True,
-        controls=[
-            title,
-            ft.Container(height=10),
-
-            price_txt,
-            change_txt,
-            time_txt,
-
-            ft.Container(height=10),
-
-            ft.Container(height=220, content=chart),
-
-            ft.Container(height=10),
-
-            ft.Row(
-                [
-                    ft.ElevatedButton(
-                        "REFRESH",
-                        bgcolor="#d4af37",
-                        color="black",
-                        on_click=lambda e: (click.play(), asyncio.create_task(get_price())),
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-            ),
-        ],
-    )
-
-    # ================= BOOT SEQUENCE =================
-    boot = ft.Container(
-        expand=True,
+        bgcolor="#000000",
         content=ft.Column(
             [
+                ft.Image(src="assets/icon.png", width=140),
                 ft.ProgressRing(color="#d4af37"),
-                ft.Text("INITIALIZING HF DATA FEED...", color="#d4af37"),
+                ft.Text("Cargando mercado...", color="#d4af37"),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
     )
 
-    page.add(boot)
-    await page.update_async()
+    page.add(splash)
 
-    await asyncio.sleep(1.5)
+    # ================= UI =================
+    price_txt = ft.Text("—", size=40, color="#d4af37", weight="bold")
+    status_txt = ft.Text("", color="#777777")
 
-    page.controls.clear()
-    page.add(dashboard)
+    last_price = None
 
-    await get_price()
+    # ================= FETCH =================
+    def get_price():
+        nonlocal last_price
 
-    await page.update_async()
+        try:
+            r = requests.get(API_URL, timeout=5)
+            data = r.json()
+            price = float(data.get("price", 0))
 
-    # ================= LIVE MARKET LOOP =================
-    async def live_feed():
-        while True:
-            await asyncio.sleep(6)
-            await get_price()
+            price_txt.value = f"${price:,.2f}"
 
-    asyncio.create_task(live_feed())
+            if last_price:
+                diff = price - last_price
+                if diff > 0:
+                    status_txt.value = "▲ Subiendo"
+                    status_txt.color = "#00ff88"
+                elif diff < 0:
+                    status_txt.value = "▼ Bajando"
+                    status_txt.color = "#ff4d4d"
+                else:
+                    status_txt.value = "Sin cambios"
+
+            last_price = price
+
+        except:
+            status_txt.value = "Error de conexión"
+            status_txt.color = "#ff0000"
+
+    # ================= MAIN UI =================
+    main_ui = ft.Container(
+        expand=True,
+        opacity=0,
+        animate_opacity=500,
+        content=ft.Column(
+            [
+                ft.Text("LA TASA DE ORO", size=20, color="white"),
+                price_txt,
+                status_txt,
+                ft.Container(height=20),
+                ft.ElevatedButton(
+                    "Actualizar",
+                    bgcolor="#d4af37",
+                    color="black",
+                    on_click=lambda e: get_price(),
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+
+    page.add(main_ui)
+
+    # ================= START =================
+    get_price()
+
+    splash.opacity = 0
+    main_ui.opacity = 1
+    page.update()
+
+    async def remove_splash():
+        await asyncio.sleep(0.6)
+        page.controls.remove(splash)
+        page.update()
+
+    asyncio.create_task(remove_splash())
 
 
 ft.app(target=main)
