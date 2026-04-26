@@ -1,4 +1,4 @@
-name: Build APK - La Tasa de Oro (APK EXACTO)
+name: Build APK - La Tasa de Oro (APK LIGERO 64-BIT)
 
 on:
   push:
@@ -28,23 +28,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet==0.84.0
 
-      - name: Build APK
+      - name: Build APK (Solo 64 bits)
         run: |
-          yes | flet build apk
+          yes | flet build apk --flutter-build-args="--target-platform android-arm64"
 
       - name: Extraer el APK Real
         run: |
-          # Buscamos SOLO en la carpeta final que genera Flet y tomamos el primer resultado
           APK_REAL=$(find ./build/apk -type f -name "*.apk" | head -n 1)
           
           echo "========================================="
           echo "APK REAL ENCONTRADO EN: $APK_REAL"
           echo "========================================="
           
-          # Mostrar su tamaño real en consola
           ls -lh "$APK_REAL"
           
-          # Crear carpeta limpia y copiar SOLO ese archivo
           mkdir dist
           cp "$APK_REAL" dist/LaTasaDeOro.apk
 
