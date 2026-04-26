@@ -5,3 +5,10 @@ version = "1.0.0"
 [android]
 min_sdk = 21
 target_sdk = 34
+
+# Le decimos a Flet que empaquete esta carpeta dentro de la APK
+include_assets = "assets"
+
+# Aseguramos explícitamente el permiso de internet (Flet suele ponerlo por defecto, 
+# pero así nos aseguramos de que nunca falle la conexión en el móvil)
+permissions = ["INTERNET"]
